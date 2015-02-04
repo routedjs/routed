@@ -6,13 +6,13 @@
     var lts = []
 
     /**
-     *  e.g: http://github.com#profile ==> #profile 
+     *  e.g: http://github.com#profile ==> #profile
      */
     function hashFromUrl(url) {
         return (url || '').split('#')[0]
     }
 
-    function emit (ctx) {
+    function emit(ctx) {
         for (var i = 0; i < lts.length; i++) {
             lts(ctx)
         }
@@ -26,6 +26,7 @@
         var next = hashFromUrl(e.newURL)
         var ctx = ctxes.pop()
 
+        emit(ctx)
         // validate
         // if (ctx && ctx.pre === pre) {}
     }
@@ -38,27 +39,25 @@
         lts.push(ob)
     }
 
-    R.back = function() {
-        var ctx = new Context({
-            type: 'back',
-            pre: window.location.hash.slice(1)
-        })
-        ctxes.push(ctx)
+    function createCtx(type, next) {
+        return function () {
+            var ctx = new Context({
+                type: 'back',
+                pre: window.location.hash.slice(1)
+            })
+            ctxes.push(ctx)
+            next.apply(this, arguments)
+        }
     }
-    R.forward = function() {
-        var ctx = new Context({
-            type: 'forward',
-            pre: window.location.hash.slice(1)
-        })
-        ctxes.push(ctx)
-    }
-    R.route = function() {
-        var ctx = new Context({
-            type: 'route',
-            pre: window.location.hash.slice(1)
-        })
-        ctxes.push(ctx)
-    }
+    R.back = createCtx('back', function () {
+        history.back()
+    })
+    R.forward = createCtx('forward', function () {
+        history.forward()
+    })
+    R.route = createCtx('route', function (path) {
+        window.location.hash = path
+    })
 
     /**
      *  hook to native method
