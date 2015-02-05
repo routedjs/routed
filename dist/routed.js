@@ -1,3 +1,4 @@
+/** Routed v0.0.1 by switer **/
 ! function() {
     'use strict';
     var his = window.history
