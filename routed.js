@@ -1,80 +1,161 @@
 ! function() {
     'use strict';
-
-    var ctxes = []
+    var his = window.history
+    var loc = window.location
+    var ctxes = [] // Context queue
+    var lts = [] // Routed listeners
+    var mds = [] // Middlewares
     var evt = 'hashchange'
-    var lts = []
+    var T_BOOT = 'boot'
+    var T_MANUAL = 'manual'
+    var T_ROUTE = 'route'
+    var T_REPLACE = 'replace'
+    // var T_BACK = 'back'
+    // var T_FORWARD = 'forward'
+    var inited = 0
 
+
+    /**
+     *  Will be called when the first time to call "Routed(observers)"
+     */
+    function boot() {
+        inited = 1
+        bindCtx(T_BOOT, function(ctx) {
+            ctx.next = hash()
+            ctx.curr = ''
+            ctx.prev = ''
+            dispatch({
+                newURL: loc.href
+            })
+        })()
+    }
+
+    /**
+     *  Routed API Method
+     *  @param ob <Function> "ob" will be called when boot or hash has change
+     */
+    function R(ob) {
+        lts.push(ob)
+        if (!inited) boot()
+    }
     /**
      *  e.g: http://github.com#profile ==> #profile
      */
     function hashFromUrl(url) {
-        return (url || '').split('#')[0]
+        return (url || '').split('#')[1] || ''
     }
-
+    /**
+     *  Remove the start '#' char of hash string
+     */
+    function hash() {
+        return loc.hash.replace(/^#/, '')
+    }
+    /**
+     *  Emit all routed listener
+     */
     function emit(ctx) {
         for (var i = 0; i < lts.length; i++) {
-            lts(ctx)
+            lts[i].call(ctx, ctx)
         }
+    }
+    /**
+     *  Call middleware in sequence and return the final result
+     */
+    function middleware(r) {
+        for (var i = 0; i < mds.length; i++) {
+            mds[i](r)
+        }
+        return r
+    }
+
+    function validate(ctx, n, p) {
+        return ctx.curr === p && ctx.next === n
     }
 
     /**
-     *  call when hashchange trigger
+     *  Call when hashchange trigger or initial boot
      */
-    function dispatcher(e) {
-        var pre = hashFromUrl(e.oldURL)
+    function dispatch(e) {
+        var prev = hashFromUrl(e.oldURL)
         var next = hashFromUrl(e.newURL)
-        var ctx = ctxes.pop()
+        var ctx = ctxes[0]
+        var legal
 
-        emit(ctx)
-        // validate
-        // if (ctx && ctx.pre === pre) {}
+        if (!ctx || !(legal = validate(ctx, next, prev)) ) {
+            ctx = new Context({
+                type: T_MANUAL, // route without hook through this branch
+                prev: prev
+            })
+        }
+        ctx && legal && ctxes.shift()
+        ctx.path = next
+        delete ctx.next
+        delete ctx.curr
+        emit(middleware(ctx))
     }
 
     function Context(opt) {
-        this.type = opt.type // boot | route | forward | back
+        this.type = opt.type // boot | route | manual | replace
+        this.prev = opt.prev
     }
-
-    function R(ob) {
-        lts.push(ob)
-    }
-
-    function createCtx(type, next) {
-        return function () {
-            var ctx = new Context({
-                type: 'back',
-                pre: window.location.hash.slice(1)
-            })
-            ctxes.push(ctx)
-            next.apply(this, arguments)
-        }
-    }
-    R.back = createCtx('back', function () {
-        history.back()
-    })
-    R.forward = createCtx('forward', function () {
-        history.forward()
-    })
-    R.route = createCtx('route', function (path) {
-        window.location.hash = path
-    })
 
     /**
-     *  hook to native method
+     *  Push the context instance to the queue for next dispatch handler to get it
      */
-    var natb = window.history.back
-    var natf = window.history.forward
+    function bindCtx(t, next, opt) {
+        return function() {
+            var ctx = new Context({
+                type: t,
+                prev: hash()
+            })
+            ctxes.push(ctx)
+            var args = [].slice.call(arguments)
+            args.unshift(ctx)
+            next.apply(this, args)
+        }
+    }
 
-    window.history.back = function() {}
-    window.history.forward = function() {}
+    R.use = function(md) {
+        mds.push(md)
+    }
 
+    /**
+     *  Need hook to native method
+     */
+    R.back = function() {
+        his.back.apply(his, arguments)
+    }
+    R.forward = function() {
+        his.forward.apply(his, arguments)
+    }
+    R.route = bindCtx(T_ROUTE, function(ctx, p) {
+        p = hashFromUrl(p)
+        ctx.next = p
+        ctx.curr = hash()
+        loc.hash = p
+    })
+    /**
+     *  Cannot assign 'replace' of 'Location' in no-inline script
+     *  Please use `location.replace = Routed.replace` in inline script
+     */
+    var ntr = loc.replace
+    R.replace = bindCtx(T_REPLACE, function(ctx, p) {
+        p = hashFromUrl(p)
+        ctx.next = p
+        ctx.curr = hash()
+        ntr.call(loc, '#' + p)
+    })
+    /**
+     *  Support IE
+     */
+    window.addEventListener ? window.addEventListener(evt, dispatch, false) : win.attachEvent('on' + evt, dispatch)
 
-    window.addEventListener ? window.addEventListener(evt, dispatcher, false) : win.attachEvent('on' + evt, dispatcher)
-
-
-    // AMD/CMD/node/bang
+    /**
+     *  Global namespace is "Routed"
+     */
     if (typeof exports !== 'undefined') {
         if (typeof module !== 'undefined' && module.exports) module.exports = R
         else exports.Routed = R
-    } else this.Routed = R
+    } else window.Routed = R
+
 }();

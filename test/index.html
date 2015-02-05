@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>routed test</title>
+    <script src="../routed.js"></script>
+</head>
+
+<body>
+    <button onclick="route()">test</button>
+    <script>
+    var assertions = [{
+        type: 'boot',
+        prev: '',
+        path: ''
+    },{
+        type: 'route',
+        prev: '',
+        path: 'index1'
+    },{
+        type: 'manual',
+        prev: 'index1',
+        path: 'index2'
+    },{
+        type: 'manual',
+        prev: 'index2',
+        path: 'index1'
+    },{
+        type: 'route',
+        prev: 'index1',
+        path: 'index3'
+    },{
+        type: 'route',
+        prev: 'index3',
+        path: 'index4'
+    },{
+        type: 'replace',
+        prev: 'index4',
+        path: ''
+    }]
+    var MIN_DELAY = 100
+
+    function route () {
+        Routed.route('#index1')
+        setTimeout(function () {
+            location.hash = '#index2'
+        }, MIN_DELAY)
+
+        setTimeout(function () {
+            Routed.back()
+        }, MIN_DELAY*2)
+
+        setTimeout(function () {
+            Routed.route('#index3')
+            Routed.route('#index4')
+            Routed.replace('#')
+        }, MIN_DELAY*3)
+    }
+    function parseQuery(h) {
+        var parts = h ? h.split('!!') : []
+        var queries = {}
+        parts.forEach(function(kv) {
+            kv = kv.split('=')
+            queries[kv[0]] = kv[1]
+        })
+        return queries
+    }
+    Routed.use(function(ctx) {
+        ctx.queries = parseQuery(ctx.path)
+    })
+    Routed(function(ctx) {
+        var ast = assertions.shift()
+        var lo = ' assertion with ' + JSON.stringify(ctx)
+        if (ctx.type === ast.type && ctx.prev === ast.prev && ctx.path === ast.path)
+            console.log('%c√ Done' + lo, 'color: green')
+        else console.log('%cX Wrong' + lo + ' but expect %c' + JSON.stringify(ast), 'color: red', 'color:blue')
+    })
+    location.replace = Routed.replace
+
+    </script>
+</body>
+
+</html>
