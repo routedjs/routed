@@ -1,3 +1,4 @@
+![logo](http://switer.qiniudn.com/crossroads.png)
 # routed
 The very lightweight and simple hashchange dispatcher.
 
@@ -21,14 +22,14 @@ Routed(function (ctx) {
 })
 ```
 
-`ctx` argument see: [Context Object](#context)
+`ctx` argument see: [Context Object](#contextobject)
 
 
 ## API Reference
 
 - Global API
-    - [Routed(listener)]()
-    - [.use(middleware)]()
+    - [Routed(listener)](#Routedlistener)
+    - [.use(middleware)](usemiddleware)
 
 - Route Methods
     - [.back()]()
@@ -36,7 +37,7 @@ Routed(function (ctx) {
     - [.route(path)]()
     - [.replace(path)]()
 
-- [Context Object](#context)
+- [Context Object](#contextobject)
 
 
 ## Global API
@@ -59,6 +60,12 @@ Routed(function (ctx) {
 ## Context Object
 
 #### Properties:
-- **type** *<String>* boot | route | replace | manual
-- **prev** *<String>* 
-- **path** *<String>*
+
+- type `<String>` Means hashchange event trigger type:
+    - **boot**  routed launch first time
+    - **route** use *Route.route()*
+    - **replace** use *Route.replace()*
+    - **manual** *history.back()*, *Routed.back()*, *history.forward()*, *Routed.forward()*, *location.hash*
+
+- **prev** `<String>` last hash
+- **path** `<String>` current hash
