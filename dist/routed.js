@@ -1,18 +1,27 @@
-/** Routed v0.0.1 by switer **/
+/** Routed v0.0.2 by switer **/
 ! function() {
     'use strict';
+
     var his = window.history
     var loc = window.location
     var ctxes = [] // Context queue
     var lts = [] // Routed listeners
     var mds = [] // Middlewares
     var evt = 'hashchange'
+
+    /**
+     *  Route action type
+     */
     var T_BOOT = 'boot'
     var T_MANUAL = 'manual'
     var T_ROUTE = 'route'
     var T_REPLACE = 'replace'
     // var T_BACK = 'back'
     // var T_FORWARD = 'forward'
+
+    /**
+     *  private state
+     */
     var inited = 0
 
 
@@ -63,10 +72,12 @@
      *  Call middleware in sequence and return the final result
      */
     function middleware(r) {
+        var result
         for (var i = 0; i < mds.length; i++) {
-            mds[i](r)
+            result = mds[i](r)
+            if (result === false) break
         }
-        return r
+        return result
     }
 
     function validate(ctx, n, p) {
@@ -82,7 +93,7 @@
         var ctx = ctxes[0]
         var legal
 
-        if (!ctx || !(legal = validate(ctx, next, prev)) ) {
+        if (!ctx || !(legal = validate(ctx, next, prev))) {
             ctx = new Context({
                 type: T_MANUAL, // route without hook through this branch
                 prev: prev
@@ -92,7 +103,9 @@
         ctx.path = next
         delete ctx.next
         delete ctx.curr
-        emit(middleware(ctx))
+        
+        // if any middleware return false, will stop call emit
+        if (middleware(ctx) !== false) emit(ctx)
     }
 
     function Context(opt) {
@@ -123,11 +136,13 @@
     /**
      *  Need hook to native method
      */
-    R.back = function() {
-        his.back.apply(his, arguments)
+    var ntb = his.back
+    var ntf = his.forward
+    R.back = his.back = function() {
+        ntb.apply(his, arguments)
     }
-    R.forward = function() {
-        his.forward.apply(his, arguments)
+    R.forward = his.forward = function() {
+        ntf.apply(his, arguments)
     }
     R.route = bindCtx(T_ROUTE, function(ctx, p) {
         p = hashFromUrl(p)
