@@ -32,10 +32,10 @@ Routed(function (ctx) {
     - [.use(middleware)](usemiddleware)
 
 - Route Methods
-    - [.back()]()
-    - [.forward()]()
-    - [.route(path)]()
-    - [.replace(path)]()
+    - [.back()](back)
+    - [.forward()](forward)
+    - [.route(path)](routepath)
+    - [.replace(path)](replacepath)
 
 - [Context Object](#contextobject)
 
@@ -49,10 +49,13 @@ Routed(function (ctx) {
 ## Route Methods
 
 ### .back()
+Equal to history.back
 
 ### .forward()
+Equal to history
 
 ### .route(path)
+- **path** <String> Hash string
 
 ### .replace(path)
 
