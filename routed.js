@@ -1,3 +1,4 @@
+/** Routed v0.0.2 by switer **/
 ! function() {
     'use strict';
 
@@ -7,6 +8,7 @@
     var lts = [] // Routed listeners
     var mds = [] // Middlewares
     var evt = 'hashchange'
+    var current // Save last context
 
     /**
      *  Route action type
@@ -15,6 +17,7 @@
     var T_MANUAL = 'manual'
     var T_ROUTE = 'route'
     var T_REPLACE = 'replace'
+    var T_UNKNOW = 'unknow'
     // var T_BACK = 'back'
     // var T_FORWARD = 'forward'
 
@@ -51,7 +54,7 @@
      *  e.g: http://github.com#profile ==> #profile
      */
     function hashFromUrl(url) {
-        return (url || '').split('#')[1] || ''
+        return /#/.test(url)? url.split('#')[1] || '' : url
     }
     /**
      *  Remove the start '#' char of hash string
@@ -103,6 +106,7 @@
         delete ctx.next
         delete ctx.curr
         
+        current = ctx
         // if any middleware return false, will stop call emit
         if (middleware(ctx) !== false) emit(ctx)
     }
@@ -127,7 +131,13 @@
             next.apply(this, args)
         }
     }
-
+    R.current = function () {
+        return current || middleware({
+            type: T_UNKNOW,
+            prev: null,
+            path: hash()
+        })
+    }
     R.use = function(md) {
         mds.push(md)
     }
@@ -163,7 +173,7 @@
     /**
      *  Support IE
      */
-    window.addEventListener ? window.addEventListener(evt, dispatch, false) : win.attachEvent('on' + evt, dispatch)
+    window.addEventListener ? window.addEventListener(evt, dispatch, false) : window.attachEvent('on' + evt, dispatch)
 
     /**
      *  Global namespace is "Routed"
