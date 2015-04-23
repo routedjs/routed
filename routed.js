@@ -1,4 +1,3 @@
-/** Routed v0.0.2 by switer **/
 ! function() {
     'use strict';
 
